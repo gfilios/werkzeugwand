@@ -1,0 +1,8 @@
+# Erzeugte Dateien - bauen sich in Sekunden neu, gehoeren nicht ins Repo.
+# Quelle der Wahrheit ist der Code, nicht die STL.
+halter/*/druck/
+
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
