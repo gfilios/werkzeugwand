@@ -53,6 +53,10 @@ Kante, Frontplatte davor. Nicht geschraubt, frei verschiebbar.
   funktionierenden Probehaken; die Bretter sind knapp dünner.
 - Wo eine **senkrechte Latte** hinter dem Brett sitzt, gibt es **keinen Spalt**.
   Halter dazwischen setzen.
+- **Nach unten ist Platz.** Ein Halter darf ruhig weit unter die Brettkante reichen:
+  durch seine Ausladung hängt das Werkzeug **vor** den Brettern darunter, nicht in
+  einer Nische zwischen ihnen. Das nächste Brett ist kein Hindernis (an der Wand
+  bestätigt). Lange Werkzeuge brauchen also keinen Sonderaufbau.
 
 **2. Der Drucker.** Prusa MK4S, 250 × 210 × 220 mm.
 
@@ -72,9 +76,10 @@ Die `.step` bleibt im Wandkoordinatensystem (z = 0 ist die Brettoberkante), dami
 in Fusion an der Wand messen kann.
 
 Slicer: **Brim an**, **Supports AUS**. Supports sind hier nicht nur unnötig, sondern
-schädlich — sie landen in den Hülsenbohrungen und im Hakenkanal. Was ohne Stützen
-bleibt, sind nur die Becherböden, und die sind Brücken über die Bohrung: die druckt
-der MK4S problemlos.
+schädlich — sie landen in den Hülsenbohrungen und im Hakenkanal. Ohne Stützen
+druckbar zu sein ist damit keine Kür, sondern Bedingung: **jede waagerechte Decke
+über einem Hohlraum muss durch 45°-Geometrie ersetzt werden** (siehe „Kein flacher
+Boden über einer Bohrung" unten).
 
 ---
 
@@ -92,6 +97,13 @@ da nicht. Also: als Denkanstoß lesen, nicht als Vorlage kopieren.
   nach „dem" Durchmesser. Konsequenz hier: Hülse dreigeteilt (weit–eng–weit), Clip
   auf halber Länge, wo das Rohr garantiert rund ist — dann muss man die Länge der
   Verdickung gar nicht kennen.
+- **Eine Konstruktionsänderung kann eine harmlose Annahme tragend machen.** Die
+  Rohrlängen waren teils interpoliert — egal, solange der *Clip* das Rohr hielt: der
+  sitzt auf halber Höhe, ein paar Millimeter verschieben ihn kaum. Als der *Boden*
+  das Gewicht übernahm, bestimmte dieselbe Zahl plötzlich, **wie tief das Rohr
+  sitzt**, und 6 mm Schätzfehler wurden zu 6 mm Versinken. Also: bei jeder Änderung
+  fragen, **welche bisher unkritische Größe jetzt trägt** — und die dann messen.
+  (Und Werkzeuge wachsen nicht linear: von 6×7 auf 8×9 sind es 2 mm, nicht 8.)
 - **Last und Sicherung trennen.** Ein C-Clip hält nur radial; senkrecht rutscht
   das Werkzeug durch. Das Gewicht trug am Ende ein **Boden**, auf dem das Rohr
   steht; der Clip sichert nur gegen Herausfallen und darf leichtgängig sein.
@@ -102,6 +114,22 @@ da nicht. Also: als Denkanstoß lesen, nicht als Vorlage kopieren.
   die Arme eines kleinen Clips kurz und dick, müssten sich um mehrere Prozent
   dehnen und reißen — während ein großer Clip mit derselben Wand butterweich wäre.
   Ziel: Randfaserdehnung unter 1 % über alle Größen.
+- **Kein flacher Boden über einer Bohrung.** Hier stand mal, die Becherböden seien
+  „Brücken über die Bohrung: die druckt der MK4S problemlos". **Das ist falsch, und
+  zwar gedruckt und angeschaut.** In der Drucklage liegt so ein Boden *oben* und ist
+  eine Decke über der ganzen Bohrung — beim 20×22 gut 30 mm Spannweite, und das über
+  einen **runden** Umriss, bei dem die ersten Brückenlinien an den Rändern im Nichts
+  anfangen und nichts zum Ankern haben. Ergebnis: ein Fadengewirr. Kein Drucker kann
+  das, es ist keine Frage der Maschine. Der Boden muss ein **45°-Kegel** sein, der
+  sich nach innen zusammenzieht: jede Schicht liegt auf der vorigen auf, keine
+  einzige Brücke. Das Restloch in der Mitte ist kleiner als das Werkzeug — es trägt
+  weiterhin, und Dreck fällt heraus statt sich zu sammeln. Verjüngt sich der Kegel
+  außen mit, entfällt zugleich die deckungsgleiche Fläche zur Hülse.
+- **Ein waagerechter Zapfen geht doch — auf der Ecke.** Ein 1/4″-Vierkant zum
+  Aufstecken (Nüsse) ragt waagerecht nach vorn und ist damit erst mal genau der
+  verbotene Auskrager. Um **45° auf die Ecke gedreht** stehen seine unteren Flächen
+  exakt 45° schräg und er druckt stützfrei. Die eiserne Regel ist also nicht „nur
+  senkrechte Prismen", sondern „**nirgends flacher als 45°**".
 - **Beschriftung nur graviert, in die Stegoberseite.** Das ist die Bettfläche —
   erhabene Schrift ginge dort nicht.
 - Material **PETG**, nicht PLA: die Garage wird im Sommer warm, PLA kriecht unter
@@ -111,6 +139,15 @@ da nicht. Also: als Denkanstoß lesen, nicht als Vorlage kopieren.
 eine verkürzte Einzelaufnahme mit identischer Klemm- und Hakengeometrie, ~30 min
 Druckzeit. Immer die **Extreme** testen (kleinstes und größtes Werkzeug), nicht die
 Mitte. Und vor dem Slicen mit `preview.py` rendern, statt dem Code zu vertrauen.
+
+**Passungen ertesten, gestaffelt — und den Randwert nicht glauben.** Ob ein
+gedruckter Zapfen eine Nuss leicht *und* haltend trägt, entscheiden Zehntel; das
+rechnet man nicht aus, das druckt man (mehrere Maße nebeneinander auf einem Clip).
+Wichtig: **Gewinnt der äußerste Wert der Staffel, ist nichts gefunden** — dann war
+die Staffel falsch gewählt und das Optimum liegt dahinter. Erst wenn der beste Wert
+von beiden Seiten eingeklammert ist, stimmt er. (Beim 1/4″-Vierkant brauchte es
+dafür zwei Runden: 6,10–6,40 gewann am oberen Rand, erst 6,50–6,70 klammerte den
+echten Wert 6,50 ein.)
 
 ---
 

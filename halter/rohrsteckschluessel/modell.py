@@ -42,17 +42,23 @@ AUSGABE = Path(__file__).parent / "druck"
 # --- Der Satz: (Name, Ø Mitte, Ø Ende, Laenge) ---
 # Ø MITTE und Ø ENDE sind GEMESSEN. Daran klemmt bzw. passt es - nichts hergeleitet.
 # Das 6x7 ist das einzige ohne Verdickung: Ende = Mitte.
-# Die LAENGEN sind weiterhin interpoliert (nur 108 und 165 gemessen). Unkritisch:
-# der Clip sitzt auf halber Laenge, ein paar mm Fehler verschieben ihn nur minimal.
+#
+# DIE LAENGE IST NICHT MEHR UNKRITISCH. Hier stand mal, ein paar mm Fehler wuerden
+# nur den Clip minimal verschieben - das galt, solange der Clip das Rohr hielt.
+# Seit der BODEN das Gewicht traegt, bestimmt die Laenge, wie tief das Rohr sitzt:
+# 6 mm zu lang angenommen heisst 6 mm zu tief versunken. Genau so aufgefallen
+# (8x9: interpoliert 116, gemessen 110 - das Rohr verschwand sichtbar im Becher).
+# Die Rohre wachsen NICHT linear: von 6x7 auf 8x9 sind es 2 mm, nicht 8.
+# Also: jede Laenge messen, keine interpolieren.
 ROHRE = [
-    ("6x7", 11.00, 11.00, 108.0),
-    ("8x9", 11.00, 12.20, 116.0),
-    ("10x11", 13.89, 15.24, 123.0),
-    ("12x13", 16.20, 18.64, 131.0),
-    ("14x15", 16.24, 20.00, 138.0),
-    ("16x17", 19.33, 22.70, 146.0),
-    ("18x19", 22.00, 25.02, 154.0),
-    ("20x22", 25.28, 28.40, 165.0),
+    ("6x7", 11.00, 11.00, 108.0),  # gemessen
+    ("8x9", 11.00, 12.20, 110.0),  # gemessen - interpoliert waren es 116!
+    ("10x11", 13.89, 15.24, 120.0),  # gemessen - interpoliert waren es 123
+    ("12x13", 16.20, 18.64, 136.0),  # gemessen - interpoliert waren es 131 (zu KURZ)
+    ("14x15", 16.24, 20.00, 138.0),  # interpoliert, aber am Druck bestaetigt
+    ("16x17", 19.33, 22.70, 146.0),  # interpoliert, aber am Druck bestaetigt
+    ("18x19", 22.00, 25.02, 154.0),  # interpoliert, aber am Druck bestaetigt
+    ("20x22", 25.28, 28.40, 165.0),  # gemessen
 ]
 MODULE = 2
 
@@ -168,11 +174,59 @@ def konus_hoehe(dw, od):
     return max(d_ro, d_ri, d_maul) + 1.0
 
 
+def boden_kegel(d_max, z_boden):
+    """Der Boden als 45-Grad-Kegel - NICHT als flache Scheibe.
+
+    Erste Version war eine Vollscheibe. In der Drucklage liegt die OBEN und ist
+    damit eine Decke ueber der ganzen Bohrung: beim 20x22 gut 30 mm Spannweite,
+    und zwar ueber einen RUNDEN Umriss, bei dem die ersten Bruecken-Linien an den
+    Raendern im Nichts anfangen. Gedruckt und angeschaut (2026): ein Fadengewirr.
+    Der MK4S kann das nicht, und kein Drucker kann das.
+
+    Ein Kegel, der sich mit 45 Grad nach innen zieht, braucht keine einzige
+    Bruecke - jede Schicht liegt auf der vorigen auf. Das Loch, das dabei in der
+    Mitte offen bleibt, ist um 2 x BODEN_D kleiner als das Rohr: es traegt also
+    weiterhin, das Rohr sitzt sogar leicht zentriert im Kegel. Und Dreck faellt
+    unten heraus, statt sich im Becher zu sammeln.
+
+    Aussen verjuengt sich der Kegel mit: dadurch gibt es keine deckungsgleiche
+    Zylinderflaeche mit der Huelse mehr (die killt sonst den 3MF-Export), und die
+    frueher noetige BODEN_LIPPE entfaellt.
+    """
+    oben = profil(d_max, HUELSE_SPIEL, HUELSE_OEFFNUNG, ro_huelse(d_max))
+    unten = profil(
+        d_max - 2 * BODEN_D,
+        HUELSE_SPIEL,
+        HUELSE_OEFFNUNG,
+        ro_huelse(d_max) - BODEN_D,
+    )
+    return konus(unten, z_boden - BODEN_D, oben, z_boden)
+
+
+def einsinktiefe(d_max, d_ende):
+    """Wie weit das Rohr in den Kegelboden hineinrutscht.
+
+    Auf dem alten FLACHEN Boden stand das Rohr auf einer Flaeche - Unterkante gleich
+    Bodenoberkante, fertig. Auf der 45-Grad-Schraege sitzt es dagegen dort auf, wo
+    der Kegel genau so weit ist wie das Rohrende, und das ist ein Stueck TIEFER.
+    Bei 45 Grad ist dieser Weg gleich der radialen Differenz.
+
+    Ohne diese Korrektur sitzt jedes Rohr 0,8 bis 1,6 mm zu tief in der Huelse -
+    beim Umbau auf den Kegel uebersehen, an der Wand aufgefallen ("die rutschen
+    rein").
+    """
+    ri_kegel = d_max / 2 + HUELSE_SPIEL  # Kegel oben, = Huelsenbohrung
+    return max(0.0, ri_kegel - d_ende / 2)
+
+
 def rohr_aufnahme(od, d_ende, laenge):
     """Huelse + Clip + Boden fuer ein Rohr, Achse bei x=0.
 
     Bei verdicktem Ende dreigeteilt (weit - eng - weit) mit 45-Grad-Konen.
     Bei durchgehend rundem Rohr (6x7) faellt das weg: eine glatte Huelse.
+
+    Der Boden sitzt um die Einsinktiefe HOEHER, als die Rohrlaenge allein sagt -
+    sonst zieht der Kegel das Rohr unter die Sollhoehe.
     """
     dw = d_weit(d_ende)
     gestuft = d_ende - od > STUFE_MIN
@@ -183,7 +237,7 @@ def rohr_aufnahme(od, d_ende, laenge):
     p_clip = profil(od, CLIP_SPIEL, CLIP_OEFFNUNG, ro_clip(od))
 
     z_mitte = Z_ROHR_OBEN - laenge / 2
-    z_boden = Z_ROHR_OBEN - laenge
+    z_boden = Z_ROHR_OBEN - laenge + einsinktiefe(d_max, d_ende)
 
     with BuildPart() as p:
         if gestuft:
@@ -201,12 +255,7 @@ def rohr_aufnahme(od, d_ende, laenge):
             add(prisma(p_eng, z_boden, STEG_D - z_boden))  # durchgehend glatt
 
         add(prisma(p_clip, z_mitte - CLIP_H / 2, CLIP_H))
-        with Locations(Location((0, 0, z_boden - BODEN_D))):
-            Cylinder(
-                ro_huelse(d_max) + BODEN_LIPPE,
-                BODEN_D,
-                align=(Align.CENTER, Align.CENTER, Align.MIN),
-            )
+        add(boden_kegel(d_max, z_boden))
 
     return p.part.moved(Location((0, y, 0)))
 
