@@ -26,8 +26,15 @@ from build123d import *
 
 from pathlib import Path
 
-from kern.preview import render
-from kern.wandhalter import KLEMMKANAL, PLATTE_D, STEG_D, haken_profil, schreibe
+from kern.preview import HALTER, HOLZ, STAHL, render
+from kern.wandhalter import (
+    KLEMMKANAL,
+    PLATTE_D,
+    STEG_D,
+    brett,
+    haken_profil,
+    schreibe,
+)
 
 TITEL = "WIESEMANN 1893 Rohrsteckschluesselsatz 10tlg (81420)"
 AUSGABE = Path(__file__).parent / "druck"
@@ -204,6 +211,32 @@ def rohr_aufnahme(od, d_ende, laenge):
     return p.part.moved(Location((0, y, 0)))
 
 
+def rohr_attrappe(od, de, laenge):
+    """Ein Rohr als Koerper - NUR fuer Renderings, wird nie exportiert.
+
+    Runder Schaft mit den angestauchten Enden. Zeigt, wie der Satz haengt.
+    """
+    zb = Z_ROHR_OBEN - laenge
+    ende = 28.0  # Laenge der Verdickung (geschaetzt, nur fuers Bild)
+    with BuildPart() as p:
+        with Locations(Location((0, 0, zb))):
+            Cylinder(od / 2, laenge, align=(Align.CENTER, Align.CENTER, Align.MIN))
+        for z in (zb, zb + laenge - ende):
+            with Locations(Location((0, 0, z))):
+                Cylinder(de / 2, ende, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return p.part
+
+
+def bestueckt(rohre):
+    """Halter + eingehaengte Rohre + Brett - die Ansicht fuers README."""
+    xs, breite = positionen(rohre)
+    attrappen = [
+        rohr_attrappe(od, de, laenge).moved(Location((x, achse_y(d_weit(de) if de - od > STUFE_MIN else od), 0)))
+        for (_, od, de, laenge), x in zip(rohre, xs)
+    ]
+    return attrappen, breite
+
+
 def gravur(text, x):
     """Schriftkoerper fuer die Stegoberseite; der Aufrufer zieht ihn ab.
 
@@ -317,8 +350,10 @@ def tests_bauen():
     print(f"Testclips - Klemmkanal {KLEMMKANAL:.0f} mm, Rohr {TEST_LAENGE:.0f} mm\n")
     for label, od, de, _ in (ROHRE[0], ROHRE[-1]):
         name = f"testclip_{label.replace('x', '-')}"
-        ziel = schreibe(testclip(label, od, de), name, AUSGABE)
-        render(f"{ziel}.stl", f"{ziel}.png", titel=name)
+        teil = testclip(label, od, de)
+        ziel = schreibe(teil, name, AUSGABE)
+        breite = 2 * aussenradius(od, de) + 2 * RAND
+        render([(teil, HALTER), (brett(breite, 15), HOLZ)], f"{ziel}.png", titel=name)
         print()
 
 
@@ -327,16 +362,24 @@ def bauen():
     gruppen = [ROHRE[i : i + pro_modul] for i in range(0, len(ROHRE), pro_modul)]
     for i, gruppe in enumerate(gruppen, 1):
         name = f"halter_modul{i}"
-        ziel = schreibe(leiste(gruppe), name, AUSGABE)
+        teil = leiste(gruppe)
+        ziel = schreibe(teil, name, AUSGABE)
         tief = min(Z_ROHR_OBEN - l - BODEN_D for _, _, _, l in gruppe)
         print(f"  haengt    {abs(tief):.0f} mm unter die Brettoberkante")
-        render(f"{ziel}.stl", f"{ziel}.png", titel=f"{name} — {', '.join(g[0] for g in gruppe)}")
+        attrappen, breite = bestueckt(gruppe)
+        render(
+            [(teil, HALTER)] + [(r, STAHL) for r in attrappen] + [(brett(breite), HOLZ)],
+            f"{ziel}.png",
+            titel=f"{name} — {', '.join(g[0] for g in gruppe)}",
+        )
         print()
 
-    ziel = schreibe(dorn_halter(), "halter_dorn", AUSGABE)
+    teil = dorn_halter()
+    ziel = schreibe(teil, "halter_dorn", AUSGABE)
     print(f"  haengt    {abs(Z_ROHR_OBEN - DORN_DICK_L - SCHULTER_D):.0f} mm"
           f" (+ 45 mm freie Spitze)")
-    render(f"{ziel}.stl", f"{ziel}.png", titel="halter_dorn")
+    breite = 2 * ro_huelse(DORN_D) + 2 * BODEN_LIPPE + 2 * RAND
+    render([(teil, HALTER), (brett(breite, 15), HOLZ)], f"{ziel}.png", titel="halter_dorn")
     print()
 
 

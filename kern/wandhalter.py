@@ -68,6 +68,23 @@ def druckfertig(teil):
     return gedreht.moved(Location((0, 0, -bb.min.Z)))
 
 
+BRETT_DICKE = 23.0  # nur fuer Bilder: knapp duenner als der Klemmkanal
+BRETT_HOEHE = 110.0
+
+
+def brett(breite, ueberstand=30.0):
+    """Ein Stueck Brett - NUR fuer Renderings, wird nie exportiert.
+
+    Zeigt, wie der Halter ueber die Oberkante greift. Sitzt mittig im Klemmkanal.
+    """
+    luft = (KLEMMKANAL - BRETT_DICKE) / 2
+    with BuildPart() as p:
+        with BuildSketch(Plane.XY):
+            Rectangle(breite + 2 * ueberstand, BRETT_DICKE, align=(Align.MIN, Align.MIN))
+        extrude(amount=-BRETT_HOEHE)
+    return p.part.moved(Location((-ueberstand, luft, 0)))
+
+
 def schreibe(teil, name, ordner):
     """STEP in Wandkoordinaten (fuer CAD), STL/3MF fertig gedreht (fuer den Slicer)."""
     ordner = Path(ordner)

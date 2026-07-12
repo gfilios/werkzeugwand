@@ -6,6 +6,9 @@ Python-Code mit [build123d](https://github.com/gumyr/build123d), Export als STL,
 
 ![Halter für den Rohrsteckschlüsselsatz](bilder/rohrsteckschluessel.png)
 
+*Modul 2 (14×15 … 20×22), eingehängt über die Brettkante. Die Rohre und das Brett
+sind nur zur Veranschaulichung mitgerendert.*
+
 ## Worum es geht
 
 Die Wand besteht aus waagerechten Brettern auf senkrechten Latten, sodass **hinter
